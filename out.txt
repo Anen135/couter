@@ -1,0 +1,106 @@
+﻿%%=============.env========%%
+BOT_TOKEN=8087089273:AAHzEYGzftZiYEaSbDDW9FAGK8aIG8Bb5Bw
+%%=============game.py========%%
+from random import choice
+class Game:
+    def __init__(self):
+        self.game_players = set()
+        self.game_started = False
+        self.init_hp = 4
+    
+    def start_game(self):
+        if not self.game_players:
+            return
+        player = choice(list(self.game_players))
+        player.hp -= 1
+%%=============main.py========%%
+import asyncio
+from aiogram import Bot
+from router import TOKEN, dp
+
+# Run the bot
+async def main() -> None:
+    bot = Bot(token=TOKEN)
+    print("start polling")
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+%%=============player.py========%%
+class Player:
+    def __init__(self, id, name, hp):
+        self.id = id
+        self.name = name
+        self.hp = hp
+    
+    def __str__(self):
+        return f"{self.name} ({self.hp})"
+%%=============quetion.py========%%
+class Quetion:
+    def __init__(self, text, answers, current_answer):
+        self.text = text
+        self.answers = answers
+        self.current_answer = current_answer
+
+    def check_answer(self, answer):
+        return self.current_answer == answer
+
+    def __str__(self):
+        return self.text
+%%=============quiz.py========%%
+from quetion import Quetion
+quiz = [
+    Quetion("What is the capital of France?", ["London", "Berlin", "Madrid", "Paris"] ,"Paris"),
+    Quetion("What is the capital of Italy?", ["London", "Berlin", "Madrid", "Rome"], "Rome"),
+    Quetion("What is the capital of Spain?", ["London", "Berlin", "Barcelona", "Madrid"], "Madrid")
+]
+%%=============router.py========%%
+from os import getenv
+from dotenv import load_dotenv
+from game import Game
+from player import Player
+
+from aiogram import Dispatcher, Router, Bot
+from aiogram.filters import Command
+from aiogram.types import Message
+
+load_dotenv()
+TOKEN = getenv("BOT_TOKEN")
+router = Router()
+game = Game()
+dp = Dispatcher()
+dp.include_router(router)
+
+# Command handler
+@dp.message(Command("start"))
+async def command_start_handler(message: Message) -> None:
+    await message.answer("Hello! I'm a bot created with aiogram.")
+
+@router.message(lambda m: m.text == "/start_game")
+async def start_game(message: Message):
+    game.game_started = False
+    game.game_players.clear()
+    
+    await message.answer("Game started!")
+
+@router.message(lambda m: m.text == "/join")
+async def join_game(message: Message):
+    if game.game_started:
+        await message.answer("Game already started!")
+        return
+    game.game_players.add(Player(message.from_user.id, message.from_user.first_name, game.init_hp))
+    await message.answer(f"{message.from_user.first_name} joined the game!")
+
+@router.message(lambda m: m.text == "/begin")
+async def begin_game(message: Message, bot : Bot):
+    if not game.game_players:
+        await message.answer("No players for the game!")
+        return
+    game.game_started = True
+    game.start_game()
+    await message.answer("Game started!")
+    for user in game.game_players:
+        try:
+            await bot.send_message(user.id, f"You: \n{user}")
+        except Exception as e:
+            print(f"Error on {user.id}: {e}")
