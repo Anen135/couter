@@ -89,3 +89,41 @@ async def next_question(message: Message, bot : Bot):
             state = get_user_state(bot, user.id)
             await state.set_state(GameStates.waiting_for_answer)
             await bot.send_message(user.id, "You: \n" + str(user))
+
+@router.message(lambda m: m.text == "/start_mini_game")
+async def start_mini_game(message: Message, bot : Bot):
+    if len(game.game_players) != 2:
+        await message.answer("Not enough players!")
+        return
+    if game.finalgame.game_active:
+        await message.answer("Mini game already started!")
+        return
+    game.start_mini_game()
+    await message.answer("Mini game started!")
+    await bot.send_message(game.finalgame.bomb_holder.id, f"You have: {game.finalgame.bomb_status.upper()}")
+
+@router.message(lambda m: m.text == "/swap") 
+async def swap(message: Message, bot : Bot):
+    if not game.finalgame.game_active:
+        await message.answer("Mini game not started!")
+        return
+    
+    player = next((p for p in game.game_players if p.id == message.from_user.id), None)
+    if not player:
+        await message.answer("You are not in the game!")
+        return
+    game.finalgame.swap_used = not game.finalgame.swap_used
+    await message.answer("Swap used!")
+
+@router.message(lambda m: m.text == "/check_bomb")
+async def check_bomb(message: Message, bot : Bot):
+    holder = game.finalgame.bomb_holder
+    other = next((p for p in game.game_players if p.id != holder.id), None)
+    if not game.finalgame.game_active:
+        await message.answer("Mini game not started!")
+        return
+    await message.answer(f"Swap used: {game.finalgame.swap_used}")
+    if (game.finalgame.bomb_status == "bomb" and not game.finalgame.swap_used) or (game.finalgame.bomb_status == "empty" and game.finalgame.swap_used):
+        await bot.send_message(f"{other.name} is dead!")
+    else:
+        await bot.send_message(f"{holder.name} is dead!")

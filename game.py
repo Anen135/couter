@@ -1,15 +1,22 @@
 from random import choice
 from quiz import quiz
+from finalgame import FinalGame
 class Game:
     def __init__(self):
         self.game_players = set()
         self.game_started = False
         self.init_hp = 4
         self.question = choice(quiz)
+        self.finalgame = FinalGame()
     
     def start_game(self):
         self.game_started = True
         self.damage_random_player()
+    
+    def start_mini_game(self):
+        if len(self.game_players) != 2:
+            return
+        self.finalgame.start_game(list(self.game_players))
     
     def end_game(self):
         self.game_started = False
