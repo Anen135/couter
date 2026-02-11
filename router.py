@@ -74,6 +74,9 @@ async def handle_answer(message: Message, state: FSMContext):
 @router.message(lambda m: m.text == "/check_answers")
 async def check_answers(message: Message, bot : Bot):
     await message.answer("Checking answers...")
+    if any(p.answer == "" for p in game.game_players):
+        await message.answer("Not all players answered!")
+        return
     game.handle_answers()
     await send_player_info(bot)
 
