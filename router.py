@@ -30,16 +30,49 @@ async def send_player_info(bot: Bot):
             print(f"Error on {user.id}: {e}")
 
 # Command handler
+
+
+@router.message(Command("help"))
+async def help_command(message: Message):
+    help_text = (
+        "Команды и правила игры:\n\n"
+        "ОСНОВНАЯ ИГРА\n"
+        "/reload_game — Сброс игры, удаляет всех игроков и готовит новую игру.\n\n"
+        "/join — Присоединиться к игре. Используется до старта.\n\n"
+        "/start_game — Начать игру. Бот задает вопрос, и игроки могут отвечать.\n"
+        "После этой команды каждый игрок просто пишет свой ответ в чат.\n\n"
+        "/check_answers — Проверить ответы игроков.\n"
+        "Возможные исходы:\n"
+        "- Если все дали одинаковый ответ — единогласие (пока без эффекта).\n"
+        "- Если все, кроме одного, дали одинаковый ответ — игроки большинства получают -1 HP.\n"
+        "- Если ответы разные — все игроки получают -1 HP.\n\n"
+        "/next_question — Задать новый случайный вопрос и начать следующий раунд.\n\n"
+        "МИНИ-ИГРА (доступна, когда осталось 2 игрока)\n"
+        "/start_mini_game — Запустить мини-игру с бомбой.\n"
+        "Одному игроку тайно выдается BOMB или EMPTY.\n\n"
+        "/swap — Поменяться бомбой с другим игроком.\n"
+        "Можно использовать, но по коду это просто переключает состояние обмена.\n\n"
+        "/check_bomb — Проверить результат мини-игры.\n"
+        "Правила результата:\n"
+        "- Если была BOMB и обмен НЕ использовали — проигрывает другой игрок.\n"
+        "- Если была EMPTY и обмен использовали — проигрывает другой игрок.\n"
+        "- В остальных случаях проигрывает тот, у кого была бомба изначально.\n\n"
+        "У каждого игрока в начале 4 HP."
+    )
+
+    await message.answer(help_text)
+
+
 @dp.message(Command("start"))
 async def command_start_handler(message: Message) -> None:
     await message.answer("Hello! I'm a bot created with aiogram.")
 
-@router.message(lambda m: m.text == "/reload_game")
+@router.message(Command("reload_game"))
 async def reload_game(message: Message):
     game.end_game()
     await message.answer("Game ready!")
 
-@router.message(lambda m: m.text == "/join")
+@router.message(Command("join"))
 async def join_game(message: Message):
     if game.game_started:
         await message.answer("Game already started!")
@@ -47,7 +80,7 @@ async def join_game(message: Message):
     game.game_players.add(Player(message.from_user.id, message.from_user.first_name, game.init_hp))
     await message.answer(f"{message.from_user.first_name} joined the game!")
 
-@router.message(lambda m: m.text == "/start_game")
+@router.message(Command("start_game"))
 async def start_game(message: Message, bot : Bot):
     if not game.game_players:
         await message.answer("No players for the game!")
@@ -63,18 +96,8 @@ async def start_game(message: Message, bot : Bot):
             await bot.send_message(user.id, f"You: \n{user}")
         except Exception as e:
             print(f"Error on {user.id}: {e}")
-
-@router.message(GameStates.waiting_for_answer)
-async def handle_answer(message: Message, state: FSMContext):
-    player = next((p for p in game.game_players if p.id == message.from_user.id), None)
-    if not player:
-        await message.answer("You are not in the game!")
-        return
-    player.answer = message.text
-    await message.answer(f"Your answer: {message.text}")
-    await state.clear()
     
-@router.message(lambda m: m.text == "/check_answers")
+@router.message(Command("check_answers"))
 async def check_answers(message: Message, bot : Bot):
     await message.answer("Checking answers...")
     if any(p.answer == "" for p in game.game_players):
@@ -84,7 +107,7 @@ async def check_answers(message: Message, bot : Bot):
     await bot.send_message("\n".join(f"{user.name} is dead!" for user in game.game_players if user.dead))
     await send_player_info(bot)
 
-@router.message(lambda m: m.text == "/next_question")
+@router.message(Command("next_question"))
 async def next_question(message: Message, bot : Bot):
         game.set_random_question()
         await message.answer(str(game.question))
@@ -94,7 +117,7 @@ async def next_question(message: Message, bot : Bot):
             await state.set_state(GameStates.waiting_for_answer)
             await bot.send_message(user.id, "You: \n" + str(user))
 
-@router.message(lambda m: m.text == "/start_mini_game")
+@router.message(Command("start_mini_game"))
 async def start_mini_game(message: Message, bot : Bot):
     if len(game.game_players) != 2:
         await message.answer("Not enough players!")
@@ -106,7 +129,7 @@ async def start_mini_game(message: Message, bot : Bot):
     await message.answer("Mini game started!")
     await bot.send_message(game.finalgame.bomb_holder.id, f"You have: {game.finalgame.bomb_status.upper()}")
 
-@router.message(lambda m: m.text == "/swap") 
+@router.message(Command("swap")) 
 async def swap(message: Message, bot : Bot):
     if not game.finalgame.game_active:
         await message.answer("Mini game not started!")
@@ -119,7 +142,7 @@ async def swap(message: Message, bot : Bot):
     game.finalgame.swap_used = not game.finalgame.swap_used
     await message.answer("Swap used!")
 
-@router.message(lambda m: m.text == "/check_bomb")
+@router.message(Command("check_bomb"))
 async def check_bomb(message: Message, bot : Bot):
     holder = game.finalgame.bomb_holder
     other = next((p for p in game.game_players if p.id != holder.id), None)
@@ -131,3 +154,14 @@ async def check_bomb(message: Message, bot : Bot):
         await bot.send_message(f"{other.name} is dead!")
     else:
         await bot.send_message(f"{holder.name} is dead!")
+
+#state
+@router.message(GameStates.waiting_for_answer)
+async def handle_answer(message: Message, state: FSMContext):
+    player = next((p for p in game.game_players if p.id == message.from_user.id), None)
+    if not player:
+        await message.answer("You are not in the game!")
+        return
+    player.answer = message.text
+    await message.answer(f"Your answer: {message.text}")
+    await state.clear()
