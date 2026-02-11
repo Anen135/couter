@@ -21,6 +21,7 @@ class Game:
     def end_game(self):
         self.game_started = False
         self.game_players.clear()
+        self.finalgame.end_game()
     
     def handle_answers(self):
         if not self.game_players:

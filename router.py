@@ -30,8 +30,6 @@ async def send_player_info(bot: Bot):
             print(f"Error on {user.id}: {e}")
 
 # Command handler
-
-
 @router.message(Command("help"))
 async def help_command(message: Message):
     help_text = (
@@ -155,11 +153,11 @@ async def check_bomb(message: Message, bot : Bot):
     else:
         await bot.send_message(f"{holder.name} is dead!")
 
-#state
+#State handler
 @router.message(GameStates.waiting_for_answer)
 async def handle_answer(message: Message, state: FSMContext):
     player = next((p for p in game.game_players if p.id == message.from_user.id), None)
-    if not player:
+    if not player or player.dead:
         await message.answer("You are not in the game!")
         return
     player.answer = message.text
