@@ -3,6 +3,7 @@ class Player:
         self.id = id
         self.name = name
         self.hp = hp
+        self.dead = False
         self.answer = ""
     
     def __str__(self):

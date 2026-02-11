@@ -35,6 +35,12 @@ class Game:
             self.sabotage(answers_set)
         else: 
             self.failure()
+        self.check_dead_players()
+    
+    def check_dead_players(self):
+        for player in self.game_players:
+            if player.hp <= 0:
+                player.dead = True
 
     def failure(self):
         for player in self.game_players:

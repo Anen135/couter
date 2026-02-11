@@ -22,7 +22,10 @@ def get_user_state(bot: Bot, user_id: int) -> FSMContext:
 async def send_player_info(bot: Bot):
     for user in game.game_players:
         try:
-            await bot.send_message(user.id, f"You: \n{user}")
+            if (user.dead):
+                await bot.send_message(user.id, "You are dead!")
+            else: 
+                await bot.send_message(user.id, f"You: \n{user}")
         except Exception as e:
             print(f"Error on {user.id}: {e}")
 
@@ -78,6 +81,7 @@ async def check_answers(message: Message, bot : Bot):
         await message.answer("Not all players answered!")
         return
     game.handle_answers()
+    await bot.send_message("\n".join(f"{user.name} is dead!" for user in game.game_players if user.dead))
     await send_player_info(bot)
 
 @router.message(lambda m: m.text == "/next_question")
