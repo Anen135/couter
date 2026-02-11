@@ -83,6 +83,9 @@ async def start_game(message: Message, bot : Bot):
     if not game.game_players:
         await message.answer("No players for the game!")
         return
+    if game.game_started:
+        await message.answer("Game already started!")
+        return
     game.start_game()
     
     await message.answer("Game started!")
